@@ -10,6 +10,7 @@ class CalmCentreStore {
     var guidedMeditationSessions: [GuidedMeditationSession] = []
     var asmrSounds: [AsmrSound] = []
     var favouriteAsmrSoundIds: Set<UUID> = []
+    var recentAsmrSounds: [AsmrSound] = []
     var brainDumpFolders: [BrainDumpFolder] = []
     var brainDumpEntries: [BrainDumpEntry] = []
     var activeAsmrSound: AsmrSound?
@@ -59,6 +60,17 @@ class CalmCentreStore {
             let foldersFile = docDir.appendingPathComponent("braindump_folders.json")
             try? FileManager.default.removeItem(at: entriesFile)
             try? FileManager.default.removeItem(at: foldersFile)
+        }
+
+        // Restore favourite ASMR sounds from UserDefaults
+        if let favStrings = UserDefaults.standard.stringArray(forKey: "favourite_asmr_sound_ids") {
+            favouriteAsmrSoundIds = Set(favStrings.compactMap { UUID(uuidString: $0) })
+        }
+
+        // Restore recent ASMR sounds from UserDefaults
+        if let data = UserDefaults.standard.data(forKey: "recent_asmr_sounds"),
+           let saved = try? JSONDecoder().decode([AsmrSound].self, from: data) {
+            recentAsmrSounds = saved
         }
     }
 
@@ -138,7 +150,9 @@ class CalmCentreStore {
                 .eq("user_id", value: userId.uuidString)
                 .execute()
                 .value
-            favouriteAsmrSoundIds = Set(fetched.map { $0.soundId })
+            let fetchedIds = Set(fetched.map { $0.soundId })
+            favouriteAsmrSoundIds.formUnion(fetchedIds)
+            UserDefaults.standard.set(favouriteAsmrSoundIds.map { $0.uuidString }, forKey: "favourite_asmr_sound_ids")
         } catch { print("Fetch error: \(error)") }
     }
 
@@ -209,12 +223,28 @@ class CalmCentreStore {
     }
 
     // MARK: - ASMR
-    func playAsmrSound(_ sound: AsmrSound) { activeAsmrSound = sound }
+    func playAsmrSound(_ sound: AsmrSound) {
+        activeAsmrSound = sound
+        saveRecentAsmrSound(sound)
+    }
+
+    func saveRecentAsmrSound(_ sound: AsmrSound) {
+        recentAsmrSounds.removeAll { $0.name == sound.name }
+        recentAsmrSounds.insert(sound, at: 0)
+        if recentAsmrSounds.count > 10 {
+            recentAsmrSounds = Array(recentAsmrSounds.prefix(10))
+        }
+        if let encoded = try? JSONEncoder().encode(recentAsmrSounds) {
+            UserDefaults.standard.set(encoded, forKey: "recent_asmr_sounds")
+        }
+    }
+
     func stopAsmrSound() { activeAsmrSound = nil }
 
     func toggleAsmrFavourite(soundId: UUID, userId: UUID) {
         if favouriteAsmrSoundIds.contains(soundId) {
             favouriteAsmrSoundIds.remove(soundId)
+            UserDefaults.standard.set(favouriteAsmrSoundIds.map { $0.uuidString }, forKey: "favourite_asmr_sound_ids")
             Task {
                 do {
                     try await SupabaseManager.shared.client.from("user_favourite_asmr_sounds")
@@ -226,6 +256,7 @@ class CalmCentreStore {
             }
         } else {
             favouriteAsmrSoundIds.insert(soundId)
+            UserDefaults.standard.set(favouriteAsmrSoundIds.map { $0.uuidString }, forKey: "favourite_asmr_sound_ids")
             let fav = UserFavouriteAsmrSound(userId: userId, soundId: soundId, savedAt: Date())
             Task {
                 do {

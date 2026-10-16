@@ -103,9 +103,8 @@ struct ASMRPlayerView: View {
 
             let isFavourite = store.favouriteAsmrSoundIds.contains(sound.id)
             Button { 
-                if let userId = userStore.currentUser?.id {
-                    store.toggleAsmrFavourite(soundId: sound.id, userId: userId) 
-                }
+                let userId = userStore.currentUser?.id ?? DummyData.currentUser.id
+                store.toggleAsmrFavourite(soundId: sound.id, userId: userId) 
             } label: {
                 Image(systemName: isFavourite ? "heart.fill" : "heart")
                     .font(.title3)

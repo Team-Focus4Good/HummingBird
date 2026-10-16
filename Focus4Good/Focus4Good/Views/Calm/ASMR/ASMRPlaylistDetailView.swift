@@ -5,6 +5,8 @@ struct ASMRPlaylistDetailView: View {
     let playlist: ASMRPlaylist
     @Environment(CalmCentreStore.self) private var store
     
+    @Environment(UserStore.self) private var userStore
+    
     @State private var selectedSound: AsmrSound?
     
     // Convert hex string to Color
@@ -144,8 +146,20 @@ struct ASMRPlaylistDetailView: View {
                 
                 Spacer()
                 
-                Image(systemName: "ellipsis")
-                    .foregroundStyle(.tertiary)
+                let isFav = store.favouriteAsmrSoundIds.contains(sound.id)
+                Button {
+                    let userId = userStore.currentUser?.id ?? DummyData.currentUser.id
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        store.toggleAsmrFavourite(soundId: sound.id, userId: userId)
+                    }
+                } label: {
+                    Image(systemName: isFav ? "heart.fill" : "heart")
+                        .font(.system(size: 18))
+                        .foregroundStyle(isFav ? Color.accentColor : Color.secondary.opacity(0.6))
+                        .padding(8)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
             .padding(12)
             .background(
@@ -158,9 +172,8 @@ struct ASMRPlaylistDetailView: View {
     
     private func play(sound: AsmrSound) {
         selectedSound = sound
-        store.activeAsmrSound = sound
+        store.playAsmrSound(sound)
         store.showGlobalASMRPlayer = true
-        saveAsRecentSound(sound)
     }
     
     private func saveAsRecentPlaylist() {
