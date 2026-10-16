@@ -67,35 +67,38 @@ struct BraindumpHomeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Entries List (LazyVStack in ScrollView)
+    // MARK: - Entries List
 
     private var entriesList: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(entries) { entry in
-                    NavigationLink {
-                        BraindumpDetailView(entry: entry)
-                            .toolbar(.hidden, for: .tabBar)
+        List {
+            ForEach(entries) { entry in
+                NavigationLink {
+                    BraindumpDetailView(entry: entry)
+                        .toolbar(.hidden, for: .tabBar)
+                } label: {
+                    entryRow(entry)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        deleteEntry(entry)
                     } label: {
-                        entryCard(entry)
+                        Label("Delete", systemImage: "trash")
                     }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            deleteEntry(entry)
-                        } label: {
-                            Label("Delete Dump", systemImage: "trash")
-                        }
+                }
+                .contextMenu {
+                    Button(role: .destructive) {
+                        deleteEntry(entry)
+                    } label: {
+                        Label("Delete Dump", systemImage: "trash")
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 96)
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
     }
 
-    private func entryCard(_ entry: BrainDumpEntry) -> some View {
+    private func entryRow(_ entry: BrainDumpEntry) -> some View {
         HStack(spacing: 14) {
             // Thumbnail or icon
             if let data = entry.drawingData, !data.isEmpty,
@@ -108,25 +111,25 @@ struct BraindumpHomeView: View {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 52, height: 52)
+                    .frame(width: 44, height: 44)
                     .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(Color(.systemGray6))
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             } else {
                 Image(systemName: "doc.text.fill")
                     .font(.title3)
                     .foregroundStyle(Color.accentColor)
-                    .frame(width: 52, height: 52)
+                    .frame(width: 44, height: 44)
                     .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(Color.accentColor.opacity(0.12))
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 4) {
                 // Title (user-given name) or fallback
                 if let title = entry.title, !title.isEmpty {
                     Text(title)
@@ -137,7 +140,7 @@ struct BraindumpHomeView: View {
                 } else if !entry.content.isEmpty {
                     Text(entry.content)
                         .font(.body)
-                        .lineLimit(2)
+                        .lineLimit(1)
                         .foregroundStyle(.primary)
                 } else {
                     Text("Drawing Note")
@@ -146,31 +149,14 @@ struct BraindumpHomeView: View {
                         .foregroundStyle(.primary)
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Text(entry.createdAt, format: .dateTime.day().month(.abbreviated).hour().minute())
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-
-                    if entry.drawingData != nil && !entry.content.isEmpty {
-                        Label("Drawing", systemImage: "hand.draw")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
                 }
             }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color(.tertiaryLabel))
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemGroupedBackground))
-                .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 2)
-        )
+        .padding(.vertical, 4)
     }
 
     private func deleteEntry(_ entry: BrainDumpEntry) {

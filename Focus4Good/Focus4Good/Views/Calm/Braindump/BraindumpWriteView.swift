@@ -153,7 +153,7 @@ struct BraindumpWriteView: View {
     }
 
     private var textEditorArea: some View {
-        VStack(spacing: 10) {
+        ZStack(alignment: .bottomTrailing) {
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $text)
                     .focused($isEditorFocused)
@@ -162,7 +162,7 @@ struct BraindumpWriteView: View {
                     .padding(16)
 
                 if text.isEmpty && !speechRecognizer.isListening {
-                    Text("Write freely or tap below to speak your thoughts…")
+                    Text("Write freely or speak your thoughts…")
                         .font(.body)
                         .foregroundStyle(Color(.placeholderText))
                         .padding(.leading, 21)
@@ -175,89 +175,43 @@ struct BraindumpWriteView: View {
                     .fill(Color(.systemBackground))
             )
 
-            // Voice Dictation Panel
-            voiceDictationBar
+            // Floating mic button — bottom right corner
+            micButton
+                .padding(16)
         }
         .padding(.horizontal)
-        .padding(.bottom, 16)
+        .padding(.bottom, 13)
     }
 
-    // MARK: - Voice Dictation Bar
-
-    private var voiceDictationBar: some View {
-        VStack(spacing: 6) {
+    private var micButton: some View {
+        Button {
             if speechRecognizer.isListening {
-                HStack(spacing: 12) {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 10, height: 10)
-                            .opacity(isPulsing ? 0.3 : 1.0)
-                            .scaleEffect(isPulsing ? 1.2 : 0.9)
-                            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isPulsing)
-
-                        Text("Listening… speak your feelings")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.primary)
-                    }
-
-                    Spacer()
-
-                    Button {
-                        stopDictation()
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "checkmark.circle.fill")
-                            Text("Done")
-                        }
-                        .font(.footnote)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Capsule().fill(Color.accentColor))
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color(.secondarySystemGroupedBackground))
-                        .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 2)
-                )
-                .onAppear { isPulsing = true }
-                .onDisappear { isPulsing = false }
-        } else {
-                Button {
-                    startDictation()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color.accentColor)
-
-                        Text("Tap to speak what you're feeling")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.primary)
-
-                        Spacer()
-
-                        Image(systemName: "waveform")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Color.accentColor.opacity(0.7))
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color(.secondarySystemGroupedBackground))
-                            .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 2)
-                    )
-                }
-                .buttonStyle(.plain)
+                stopDictation()
+            } else {
+                startDictation()
             }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(speechRecognizer.isListening ? Color.red : Color.accentColor)
+                    .frame(width: 52, height: 52)
+                    .shadow(color: (speechRecognizer.isListening ? Color.red : Color.accentColor).opacity(0.4), radius: 8, x: 0, y: 4)
+                    .scaleEffect(speechRecognizer.isListening && isPulsing ? 1.12 : 1.0)
+                    .animation(
+                        speechRecognizer.isListening
+                            ? .easeInOut(duration: 0.6).repeatForever(autoreverses: true)
+                            : .default,
+                        value: isPulsing
+                    )
+
+                Image(systemName: speechRecognizer.isListening ? "stop.fill" : "mic.fill")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+            if speechRecognizer.isListening { isPulsing = true }
         }
     }
 
@@ -273,8 +227,9 @@ struct BraindumpWriteView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(.systemBackground))
         )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(.horizontal)
-        .padding(.bottom, 16)
+        .padding(.bottom, 13)
     }
 
     // MARK: - Toolbar
