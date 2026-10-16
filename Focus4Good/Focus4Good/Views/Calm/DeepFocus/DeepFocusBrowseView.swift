@@ -1,7 +1,5 @@
 import SwiftUI
 
-private let totalSessionSeconds = 300
-
 // MARK: - DeepFocusBrowseView
 
 struct DeepFocusBrowseView: View {
@@ -12,17 +10,21 @@ struct DeepFocusBrowseView: View {
     @State private var isPlaying = false
     @State private var hasStarted = false
     @State private var elapsed: TimeInterval = 0
+    @State private var totalDuration: TimeInterval = 644
     @State private var timer: Timer?
-    @State private var volume: Double = 0.5
+    @State private var volume: Double = 0.8
     @State private var isMuted = false
     @State private var isFavourite = false
     @State private var showCompletion = false
+    @State private var isSeeking = false
+    @State private var seekTime: TimeInterval = 0
 
     private static let favouriteKey = "deep_focus_favourite"
     private let userId = UUID()
+    private var audio: DeepFocusAudioService { DeepFocusAudioService.shared }
 
     private var remaining: TimeInterval {
-        max(0, Double(totalSessionSeconds) - elapsed)
+        max(0, totalDuration - (isSeeking ? seekTime : elapsed))
     }
 
     var body: some View {
@@ -75,18 +77,30 @@ struct DeepFocusBrowseView: View {
         }
         .background(AppTheme.appGradient.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { loadFavourite() }
-        .onDisappear { stopTimer() }
+        .onAppear {
+            loadFavourite()
+            startSession()
+        }
+        .onDisappear {
+            stopTimer()
+            audio.stop()
+        }
     }
 
     // MARK: - Subviews
 
     private var titleRow: some View {
         HStack {
-            Text("Guided Meditation")
-                .font(.title2)
-                .fontWeight(.bold)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Creating Mental Space")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .lineLimit(1)
+
+                Text("Deep Focus Guided Meditation")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             Spacer()
 
@@ -102,14 +116,25 @@ struct DeepFocusBrowseView: View {
     private var progressSection: some View {
         VStack(spacing: 6) {
             Slider(
-                value: Binding(get: { elapsed }, set: { _ in }),
-                in: 0...Double(totalSessionSeconds)
+                value: Binding(
+                    get: { isSeeking ? seekTime : elapsed },
+                    set: { newValue in
+                        seekTime = newValue
+                        isSeeking = true
+                    }
+                ),
+                in: 0...max(totalDuration, 1),
+                onEditingChanged: { editing in
+                    if !editing {
+                        seek(to: seekTime)
+                        isSeeking = false
+                    }
+                }
             )
             .tint(Color(.systemGray))
-            .disabled(true)
 
             HStack {
-                Text(formatTime(elapsed))
+                Text(formatTime(isSeeking ? seekTime : elapsed))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -127,7 +152,7 @@ struct DeepFocusBrowseView: View {
     private var playbackControls: some View {
         HStack(spacing: 44) {
             Button {
-                isMuted.toggle()
+                toggleMute()
             } label: {
                 Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                     .font(.title2)
@@ -136,9 +161,13 @@ struct DeepFocusBrowseView: View {
             .buttonStyle(.plain)
 
             Button {
-                if isPlaying { pauseSession() }
-                else if hasStarted { resumeSession() }
-                else { startSession() }
+                if isPlaying {
+                    pauseSession()
+                } else if hasStarted {
+                    resumeSession()
+                } else {
+                    startSession()
+                }
             } label: {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                     .font(.title2)
@@ -166,6 +195,10 @@ struct DeepFocusBrowseView: View {
 
             Slider(value: $volume, in: 0...1)
                 .tint(Color(.systemGray))
+                .onChange(of: volume) { _, newVol in
+                    isMuted = (newVol == 0)
+                    audio.setVolume(Float(newVol))
+                }
 
             Image(systemName: "speaker.wave.3.fill")
                 .font(.caption)
@@ -191,7 +224,7 @@ struct DeepFocusBrowseView: View {
                     .font(.title2)
                     .fontWeight(.bold)
 
-                Text("You completed a 5-minute\nGuided Meditation session")
+                Text("You completed a \(Int(round(totalDuration / 60)))-minute\nGuided Meditation session")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -246,34 +279,67 @@ struct DeepFocusBrowseView: View {
     // MARK: - Session Logic
 
     private func startSession() {
-        elapsed = 0
-        hasStarted = true
+        audio.onFinished = { [self] in
+            completeSession()
+        }
+        audio.play()
+        if audio.duration > 0 {
+            totalDuration = audio.duration
+        }
+        audio.setVolume(isMuted ? 0 : Float(volume))
         isPlaying = true
+        hasStarted = true
         startTimer()
     }
 
     private func pauseSession() {
+        audio.pause()
         isPlaying = false
         stopTimer()
     }
 
     private func resumeSession() {
+        audio.resume()
         isPlaying = true
         startTimer()
     }
 
     private func resetSession() {
-        stopTimer()
+        audio.seek(to: 0)
         elapsed = 0
-        hasStarted = false
-        isPlaying = false
+        seekTime = 0
+        if !isPlaying {
+            audio.play()
+            isPlaying = true
+            startTimer()
+        }
+    }
+
+    private func seek(to time: TimeInterval) {
+        audio.seek(to: time)
+        elapsed = time
+    }
+
+    private func toggleMute() {
+        isMuted.toggle()
+        if isMuted {
+            audio.setVolume(0)
+        } else {
+            audio.setVolume(Float(volume > 0 ? volume : 0.5))
+        }
     }
 
     private func startTimer() {
         stopTimer()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            elapsed += 1
-            if Int(elapsed) >= totalSessionSeconds { completeSession() }
+        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { _ in
+            guard !isSeeking else { return }
+            elapsed = audio.currentTime
+            if audio.duration > 0 {
+                totalDuration = audio.duration
+            }
+            if elapsed >= totalDuration && totalDuration > 0 {
+                completeSession()
+            }
         }
     }
 
@@ -284,14 +350,15 @@ struct DeepFocusBrowseView: View {
 
     private func completeSession() {
         stopTimer()
+        audio.stop()
         isPlaying = false
         hasStarted = false
 
         Task {
             await store.logGuidedMeditationSession(
                 userId: userId,
-                meditationName: "Guided Meditation",
-                durationSeconds: totalSessionSeconds
+                meditationName: "Creating Mental Space",
+                durationSeconds: Int(totalDuration)
             )
         }
 
