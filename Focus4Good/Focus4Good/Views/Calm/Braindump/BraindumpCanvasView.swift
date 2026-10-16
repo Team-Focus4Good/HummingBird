@@ -2,6 +2,7 @@ import SwiftUI
 import PencilKit
 
 /// A SwiftUI wrapper around PKCanvasView for freeform drawing.
+/// swiftui does not support drawing canvas natively
 struct BraindumpCanvasView: UIViewRepresentable {
 
     @Binding var canvasData: Data
@@ -13,8 +14,8 @@ struct BraindumpCanvasView: UIViewRepresentable {
     func makeUIView(context: Context) -> PKCanvasView {
         let canvas = PKCanvasView()
         canvas.delegate = context.coordinator
-        canvas.drawingPolicy = .anyInput
-        canvas.backgroundColor = .clear
+        canvas.drawingPolicy = .anyInput //finger aur apple pencil dono allow karta hai
+        canvas.backgroundColor = .clear  //keeping background transparent
         canvas.isOpaque = false
 
         // Show the system tool picker
