@@ -7,6 +7,7 @@ struct CalmCentreView: View {
     @State private var showJPMR = false
     @State private var showASMR = false
     @State private var showDeepFocus = false
+    @State private var currentTipIndex: Int = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
 
     private let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -204,29 +205,77 @@ struct CalmCentreView: View {
         }
     }
 
+    private var todayTip: ADHDDailyTip {
+        ADHDDailyTip.tip(at: currentTipIndex - 1)
+    }
+
     private var dailyTipRow: some View {
-        HStack(spacing: 16) {
-            Image(systemName: "lightbulb.fill")
-                .font(.title2)
-                .foregroundStyle(Color.orange)
+        HStack(alignment: .top, spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.orange.opacity(0.18))
+                    .frame(width: 44, height: 44)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Daily Tip")
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.primary)
-
-                Text("Focus on exhale helps maintain stress.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(Color.orange)
             }
+            .padding(.top, 2)
 
-            Spacer()
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text("Daily ADHD Tip")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.primary)
+
+                    Text(todayTip.category)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.orange)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(Color.orange.opacity(0.15))
+                        )
+
+                    Spacer()
+
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                            currentTipIndex += 1
+                        }
+                    } label: {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .padding(6)
+                            .background(Circle().fill(Color(.tertiarySystemFill)))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Next ADHD Tip")
+                }
+
+                Text("\"\(todayTip.quote)\"")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.9))
+                    .italic()
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(todayTip.actionableTip)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding()
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.orange.opacity(0.1))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.orange.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.orange.opacity(0.15), lineWidth: 1)
+                )
         )
     }
 }
