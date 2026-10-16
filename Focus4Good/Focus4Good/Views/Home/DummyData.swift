@@ -3,9 +3,9 @@ import Foundation
 struct DummyData {
 
     static let currentUser = User(
-        id: UUID(uuidString: "E621E1F8-C36C-495A-93FC-0C247A3E6E5F") ?? UUID(),
-        fullName: "Appoorva Khajuria",
-        email: "appoorva2025@gmail.com",
+        id: UUID(uuidString: "6E56A708-77CF-4AB9-BEDE-687E092E0CC5") ?? UUID(),
+        fullName: "Shreya Singh",
+        email: "singhshreya0422@gmail.com",
         profileImageUrl: nil,
         authProvider: "email",
         focusPoints: 0,

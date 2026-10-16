@@ -9,8 +9,11 @@ struct BraindumpEditorView: View {
     @State private var text = ""
     @State private var showWellDonePopup = false
 
+    @Environment(UserStore.self) private var userStore
     @Environment(CalmCentreStore.self) private var store
-    private let userId = UUID()
+    private var userId: UUID {
+        userStore.currentUser?.id ?? DummyData.currentUser.id
+    }
 
     var body: some View {
         ZStack {

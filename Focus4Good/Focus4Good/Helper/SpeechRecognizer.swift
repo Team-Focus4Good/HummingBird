@@ -1,53 +1,43 @@
 import Foundation
 import Speech
 import AVFoundation
+import Observation
 
-@MainActor
 @Observable
+@MainActor
 final class SpeechRecognizer {
-    
+
     // MARK: - State
     var transcript: String = ""
     var isListening: Bool = false
     var errorMessage: String? = nil
-    
+
     // MARK: - Private
     private var recognizer: SFSpeechRecognizer?
     private var audioEngine: AVAudioEngine?
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
-    
+
     init() {
         recognizer = SFSpeechRecognizer(locale: Locale.current)
+            ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     }
-    
+
     // MARK: - Public API
-    
-    /// Request permission then start recording.
+
+    /// Async entry point: checks permissions, then starts recording.
     func startListening() {
-        SFSpeechRecognizer.requestAuthorization { [weak self] status in
-            guard let self else { return }
-            Task { @MainActor in
-                switch status {
-                case .authorized:
-                    AVAudioApplication.requestRecordPermission { granted in
-                        Task { @MainActor in
-                            if granted {
-                                self.beginRecording()
-                            } else {
-                                self.errorMessage = "Microphone access denied."
-                            }
-                        }
-                    }
-                case .denied, .restricted:
-                    self.errorMessage = "Speech recognition permission denied. Please enable it in Settings."
-                default:
-                    self.errorMessage = "Speech recognition not available."
-                }
-            }
+        Task { @MainActor in
+            let speechOK = await requestSpeechPermission()
+            guard speechOK else { return }
+
+            let micOK = await requestMicrophonePermission()
+            guard micOK else { return }
+
+            beginRecording()
         }
     }
-    
+
     func stopListening() {
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
@@ -58,30 +48,79 @@ final class SpeechRecognizer {
         task = nil
         isListening = false
     }
-    
-    // MARK: - Private
-    
+
+    // MARK: - Permission Helpers
+
+    private func requestSpeechPermission() async -> Bool {
+        await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                DispatchQueue.main.async {
+                    switch status {
+                    case .authorized:
+                        continuation.resume(returning: true)
+                    case .denied, .restricted:
+                        self.errorMessage = "Speech recognition is denied. Please enable it in Settings → Privacy → Speech Recognition."
+                        continuation.resume(returning: false)
+                    default:
+                        self.errorMessage = "Speech recognition is not available on this device."
+                        continuation.resume(returning: false)
+                    }
+                }
+            }
+        }
+    }
+
+    private func requestMicrophonePermission() async -> Bool {
+        await withCheckedContinuation { continuation in
+            AVAudioApplication.requestRecordPermission { granted in
+                DispatchQueue.main.async {
+                    if !granted {
+                        self.errorMessage = "Microphone access is denied. Please enable it in Settings → Privacy → Microphone."
+                    }
+                    continuation.resume(returning: granted)
+                }
+            }
+        }
+    }
+
+    // MARK: - Recording
+
     private func beginRecording() {
         stopListening() // reset any existing session
-        
+
         guard let recognizer, recognizer.isAvailable else {
-            errorMessage = "Speech recognizer is not available right now."
+            errorMessage = "Speech recognizer is not available right now. Try again in a moment."
             return
         }
-        
+
+        // Step 1: Activate the audio session FIRST.
+        // The input node format is only valid after the session is active.
+        // Calling engine.start() with a mismatched/zero sample-rate format causes SIGABRT.
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            errorMessage = "Could not configure audio session: \(error.localizedDescription)"
+            return
+        }
+
+        // Step 2: Build the engine and recognition request.
         let engine = AVAudioEngine()
         audioEngine = engine
-        
+
         let req = SFSpeechAudioBufferRecognitionRequest()
         req.shouldReportPartialResults = true
         request = req
-        
+
+        // Step 3: Now the session is active — outputFormat returns a valid sample rate.
         let inputNode = engine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             req.append(buffer)
         }
-        
+
+        // Step 4: Start recognition task.
         task = recognizer.recognitionTask(with: req) { [weak self] result, error in
             guard let self else { return }
             Task { @MainActor in
@@ -93,16 +132,15 @@ final class SpeechRecognizer {
                 }
             }
         }
-        
+
+        // Step 5: Start the engine (session already active, format already valid).
         do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try session.setActive(true, options: .notifyOthersOnDeactivation)
+            engine.prepare()
             try engine.start()
             isListening = true
             errorMessage = nil
         } catch {
-            errorMessage = "Could not start audio engine: \(error.localizedDescription)"
+            errorMessage = "Could not start recording: \(error.localizedDescription)"
             stopListening()
         }
     }

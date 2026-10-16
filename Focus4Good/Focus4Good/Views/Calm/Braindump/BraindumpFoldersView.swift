@@ -2,18 +2,25 @@ import SwiftUI
 
 struct BraindumpFoldersView: View {
 
+    @Environment(UserStore.self) private var userStore
     @Environment(CalmCentreStore.self) private var store
 
     @State private var isEditing = false
     @State private var showNewFolderAlert = false
     @State private var newFolderName = ""
 
-    private let userId = UUID()
+    private var userId: UUID {
+        userStore.currentUser?.id ?? DummyData.currentUser.id
+    }
+
+    private var folders: [BrainDumpFolder] {
+        store.brainDumpFolders.filter { $0.userId == userId }
+    }
 
     var body: some View {
         List {
             Section {
-                ForEach(store.brainDumpFolders) { folder in
+                ForEach(folders) { folder in
                     NavigationLink {
                         BraindumpEntriesView(folder: folder)
                     } label: {
@@ -78,7 +85,7 @@ struct BraindumpFoldersView: View {
         }
         .tint(.primary)
         .overlay {
-            if store.brainDumpFolders.isEmpty {
+            if folders.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "folder")
                         .font(.system(size: 44))
@@ -91,11 +98,15 @@ struct BraindumpFoldersView: View {
                 }
             }
         }
+        .task(id: userId) {
+            await store.fetchBrainDumpFolders(userId: userId)
+            await store.fetchBrainDumpEntries(userId: userId)
+        }
     }
 
     private func deleteFolder(at offsets: IndexSet) {
         for index in offsets {
-            store.deleteBrainDumpFolder(store.brainDumpFolders[index])
+            store.deleteBrainDumpFolder(folders[index])
         }
     }
 }

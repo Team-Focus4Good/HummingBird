@@ -50,7 +50,17 @@ class CalmCentreStore {
     }
 
     static let shared = CalmCentreStore()
-    private init() {}
+
+    private init() {
+        // Clean up any previously saved local braindump files so no data is stored locally
+        let urls = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        if let docDir = urls.first {
+            let entriesFile = docDir.appendingPathComponent("braindump_entries.json")
+            let foldersFile = docDir.appendingPathComponent("braindump_folders.json")
+            try? FileManager.default.removeItem(at: entriesFile)
+            try? FileManager.default.removeItem(at: foldersFile)
+        }
+    }
 
     // MARK: - Fetch
 
@@ -154,6 +164,7 @@ class CalmCentreStore {
                 .from("brain_dump_entries")
                 .select()
                 .eq("user_id", value: userId.uuidString)
+                .order("created_at", ascending: false)
                 .execute()
                 .value
             brainDumpEntries = fetched
@@ -277,7 +288,7 @@ class CalmCentreStore {
     func addBrainDumpEntry(content: String, drawingData: Data? = nil, title: String? = nil, userId: UUID, folderId: UUID? = nil) async {
         let points = 10
         let entry = BrainDumpEntry(userId: userId, folderId: folderId, title: title, content: content, drawingData: drawingData, pointsEarned: points, createdAt: Date())
-        brainDumpEntries.append(entry)
+        brainDumpEntries.insert(entry, at: 0)
         if let folderId, let index = brainDumpFolders.firstIndex(where: { $0.id == folderId }) {
             brainDumpFolders[index].entryCount += 1
             let folder = brainDumpFolders[index]
