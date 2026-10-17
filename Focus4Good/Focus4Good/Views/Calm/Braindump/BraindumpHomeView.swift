@@ -42,7 +42,7 @@ struct BraindumpHomeView: View {
         }
         .background(AppTheme.appGradient.ignoresSafeArea())
         .navigationTitle("Braindump")
-        .toolbar(.hidden, for: .tabBar)
+        .hideTabBar()
         .task(id: currentUserId) {
             await store.fetchBrainDumpEntries(userId: currentUserId)
         }

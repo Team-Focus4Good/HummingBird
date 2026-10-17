@@ -91,7 +91,7 @@ struct JPMRVideoView: View {
         }
         .navigationTitle("Video Tutorial")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .hideTabBar()
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             loadVideo()

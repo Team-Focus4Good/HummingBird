@@ -16,6 +16,7 @@ class CalmCentreStore {
     var activeAsmrSound: AsmrSound?
     var isASMRPlayerPresented = false
     var showGlobalASMRPlayer = false
+    var isTabBarHidden = false
     var jpmrVideoUrl: String?
     var isLoadingVideo = false
     var videoErrorMessage: String?

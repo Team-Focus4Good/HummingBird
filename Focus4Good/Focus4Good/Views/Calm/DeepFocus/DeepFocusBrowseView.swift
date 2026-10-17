@@ -77,6 +77,7 @@ struct DeepFocusBrowseView: View {
         }
         .background(AppTheme.appGradient.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .hideTabBar()
         .onAppear {
             loadFavourite()
             startSession()

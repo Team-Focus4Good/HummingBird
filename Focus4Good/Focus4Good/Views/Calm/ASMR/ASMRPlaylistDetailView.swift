@@ -30,6 +30,7 @@ struct ASMRPlaylistDetailView: View {
         }
         .background(AppTheme.appGradient.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .hideTabBar()
         .onAppear {
             saveAsRecentPlaylist()
         }

@@ -176,6 +176,7 @@ struct JPMRSessionView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { groupMenu }
         }
+        .hideTabBar()
         .onDisappear {
             stopTimer()
             JPMRAudioService.shared.stopAll()

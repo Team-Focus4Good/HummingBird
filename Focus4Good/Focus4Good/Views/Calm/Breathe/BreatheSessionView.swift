@@ -88,6 +88,7 @@ struct BreatheSessionView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { cycleMenu }
         }
+        .hideTabBar()
         .onDisappear {
             stopTimer()
             BreatheAudioService.shared.stopAll()

@@ -26,6 +26,7 @@ struct SensorySootheView: View {
         .background(AppTheme.appGradient.ignoresSafeArea())
         .navigationTitle("ASMR Sounds")
         .navigationBarTitleDisplayMode(.large)
+        .hideTabBar()
         .onAppear { 
             if let userId = userStore.currentUser?.id {
                 Task { await store.fetchFavouriteAsmrSounds(userId: userId) }

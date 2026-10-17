@@ -2,6 +2,8 @@ import SwiftUI
 
 struct CalmCentreView: View {
 
+    @Environment(CalmCentreStore.self) private var store
+
     @State private var showBraindump = false
     @State private var showBreathe = false
     @State private var showJPMR = false
@@ -32,13 +34,37 @@ struct CalmCentreView: View {
             .navigationTitle("Calm Centre")
             .navigationDestination(isPresented: $showBraindump) {
                 BraindumpHomeView()
-                    .toolbar(.hidden, for: .tabBar)
+                    .hideTabBar()
             }
-            .navigationDestination(isPresented: $showBreathe) { BreatheSessionView() }
-            .navigationDestination(isPresented: $showJPMR) { JPMRSessionView() }
-            .navigationDestination(isPresented: $showASMR) { SensorySootheView() }
-            .navigationDestination(isPresented: $showDeepFocus) { DeepFocusBrowseView() }
+            .navigationDestination(isPresented: $showBreathe) {
+                BreatheSessionView()
+                    .hideTabBar()
+            }
+            .navigationDestination(isPresented: $showJPMR) {
+                JPMRSessionView()
+                    .hideTabBar()
+            }
+            .navigationDestination(isPresented: $showASMR) {
+                SensorySootheView()
+                    .hideTabBar()
+            }
+            .navigationDestination(isPresented: $showDeepFocus) {
+                DeepFocusBrowseView()
+                    .hideTabBar()
+            }
         }
+        .toolbarVisibility(isDetailActive ? .hidden : .visible, for: .tabBar)
+        .background(TabBarVisibilityHandler(isHidden: isDetailActive))
+        .onChange(of: isDetailActive) { _, newValue in
+            store.isTabBarHidden = newValue
+        }
+        .onAppear {
+            store.isTabBarHidden = isDetailActive
+        }
+    }
+
+    private var isDetailActive: Bool {
+        showBraindump || showBreathe || showJPMR || showASMR || showDeepFocus
     }
 
     // MARK: - Subviews

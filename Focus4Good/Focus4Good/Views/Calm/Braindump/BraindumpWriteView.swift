@@ -51,7 +51,7 @@ struct BraindumpWriteView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar { toolbarContent }
-        .toolbar(.hidden, for: .tabBar)
+        .hideTabBar()
         .alert("Name your dump", isPresented: $showNameAlert) {
             TextField("", text: $entryTitle)
             Button("Save") { performSave() }

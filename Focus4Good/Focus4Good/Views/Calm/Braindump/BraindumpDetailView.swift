@@ -76,7 +76,7 @@ struct BraindumpDetailView: View {
         .background(AppTheme.appGradient.ignoresSafeArea())
         .navigationTitle(entry.title ?? "Entry")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .hideTabBar()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(role: .destructive) {

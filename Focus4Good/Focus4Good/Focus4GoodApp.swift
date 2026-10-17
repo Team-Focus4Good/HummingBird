@@ -136,6 +136,10 @@ struct MainTabView: View {
 
     var audio = ASMRAudioService.shared
 
+    private var isTabBarCurrentlyHidden: Bool {
+        selectedTab == .calm && store.isTabBarHidden
+    }
+
     var body: some View {
         @Bindable var bindableStore = store
         
@@ -160,10 +164,11 @@ struct MainTabView: View {
             
             if shouldShowMiniPlayer {
                 ASMRMiniPlayerView()
-                    .padding(.bottom, 64) // Push above the tab bar
+                    .padding(.bottom, isTabBarCurrentlyHidden ? 6 : 50)
             }
         }
         .animation(.easeInOut, value: audio.isPlaying)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isTabBarCurrentlyHidden)
         .sheet(isPresented: $bindableStore.showGlobalASMRPlayer) {
             if let activeSound = store.activeAsmrSound {
                 NavigationStack {

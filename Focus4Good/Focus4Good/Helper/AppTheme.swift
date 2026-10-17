@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - App Theme — "Warm Earth"
 //
@@ -277,5 +278,69 @@ extension Color {
             blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+}
+
+// MARK: - Tab Bar Visibility Helpers
+
+struct TabBarVisibilityHandler: UIViewControllerRepresentable {
+    let isHidden: Bool
+
+    func makeUIViewController(context: Context) -> TabBarControllerHelperVC {
+        let vc = TabBarControllerHelperVC()
+        vc.isHidden = isHidden
+        return vc
+    }
+
+    func updateUIViewController(_ uiViewController: TabBarControllerHelperVC, context: Context) {
+        uiViewController.updateTabBar(isHidden: isHidden)
+    }
+}
+
+final class TabBarControllerHelperVC: UIViewController {
+    var isHidden: Bool = false
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        updateTabBar(isHidden: isHidden)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        updateTabBar(isHidden: isHidden)
+    }
+
+    func updateTabBar(isHidden: Bool) {
+        self.isHidden = isHidden
+        if let tabController = self.tabBarController {
+            if #available(iOS 18.0, *) {
+                tabController.isTabBarHidden = isHidden
+            }
+            tabController.tabBar.isHidden = isHidden
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let tabController = self.tabBarController else { return }
+                if #available(iOS 18.0, *) {
+                    tabController.isTabBarHidden = self.isHidden
+                }
+                tabController.tabBar.isHidden = self.isHidden
+            }
+        }
+    }
+}
+
+extension View {
+    func hideTabBar() -> some View {
+        self
+            .toolbarVisibility(.hidden, for: .tabBar)
+            .toolbar(.hidden, for: .tabBar)
+            .background(TabBarVisibilityHandler(isHidden: true))
+    }
+
+    func showTabBar() -> some View {
+        self
+            .toolbarVisibility(.visible, for: .tabBar)
+            .toolbar(.visible, for: .tabBar)
+            .background(TabBarVisibilityHandler(isHidden: false))
     }
 }
