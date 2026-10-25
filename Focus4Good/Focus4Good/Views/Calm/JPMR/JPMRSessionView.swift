@@ -124,7 +124,6 @@ struct JPMRSessionView: View {
     @State private var endingIndex    = 0
     @State private var isRunning      = false
     @State private var showCompletion = false
-    @State private var showVideoTutorial = false
     @State private var elapsedSeconds = 0
     @State private var timer: Timer?
     @State private var ringProgress: CGFloat = 0.0
@@ -173,16 +172,10 @@ struct JPMRSessionView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showCompletion)
         .navigationTitle("Unwind Body")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { groupMenu }
-        }
         .hideTabBar()
         .onDisappear {
             stopTimer()
             JPMRAudioService.shared.stopAll()
-        }
-        .navigationDestination(isPresented: $showVideoTutorial) {
-            JPMRVideoView()
         }
     }
 
@@ -413,30 +406,6 @@ struct JPMRSessionView: View {
         return Color(.systemGray4)
     }
 
-    private var groupMenu: some View {
-        Menu {
-            Button {
-                // Currently active
-            } label: {
-                HStack {
-                    Text("Full Body Relaxation")
-                    Image(systemName: "checkmark")
-                }
-            }
-            
-            Divider()
-            
-            Button {
-                showVideoTutorial = true
-            } label: {
-                Label("Video Tutorial", systemImage: "play.rectangle.fill")
-            }
-        } label: {
-            Image(systemName: "figure.mind.and.body")
-                .font(.title3)
-                .foregroundStyle(Color.accentColor)
-        }
-    }
 
     private var actionButton: some View {
         Button {

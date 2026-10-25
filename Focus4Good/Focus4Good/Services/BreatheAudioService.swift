@@ -1,16 +1,13 @@
 @preconcurrency import AVFoundation
 
-// MARK: - BreatheAudioService
 
-/// Provides a full guided breathing experience using AVSpeechSynthesizer
-/// with a gentle, calming female voice.
+
+// Provides a full guided breathing experience using AVSpeechSynthesizer
 
 @MainActor
 class BreatheAudioService: NSObject, AVSpeechSynthesizerDelegate {
 
     static let shared = BreatheAudioService()
-
-    // MARK: - Private State
 
 
     //synthesizer - takes any text and convert that into speech
@@ -24,9 +21,7 @@ class BreatheAudioService: NSObject, AVSpeechSynthesizerDelegate {
         selectedVoice = pickFemaleVoice()
     }
 
-    // MARK: - Voice Selection
-
-    /// Pick the best available female voice for a calm, gentle experience.
+    //Pick the best available female voice for a calm, gentle experience.
     private func pickFemaleVoice() -> AVSpeechSynthesisVoice? {
         // Preferred female voices in priority order (premium → enhanced → default)
         let preferred: [String] = [

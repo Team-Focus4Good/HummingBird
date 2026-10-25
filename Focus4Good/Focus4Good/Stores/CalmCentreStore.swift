@@ -4,7 +4,7 @@ import Supabase
 @Observable
 class CalmCentreStore {
 
-    // MARK: - State
+    
     var breathingSessions: [BreathingSession] = []
     var jpmrSessions: [JpmrSession] = []
     var guidedMeditationSessions: [GuidedMeditationSession] = []
@@ -17,13 +17,10 @@ class CalmCentreStore {
     var isASMRPlayerPresented = false
     var showGlobalASMRPlayer = false
     var isTabBarHidden = false
-    var jpmrVideoUrl: String?
-    var isLoadingVideo = false
-    var videoErrorMessage: String?
     var isLoading = false
     var errorMessage: String?
 
-    // MARK: - Computed
+    
     var favouriteAsmrSounds: [AsmrSound] {
         let allSounds = ASMRData.playlists.flatMap { $0.sounds }
         var uniqueSounds: [AsmrSound] = []
@@ -72,26 +69,6 @@ class CalmCentreStore {
         if let data = UserDefaults.standard.data(forKey: "recent_asmr_sounds"),
            let saved = try? JSONDecoder().decode([AsmrSound].self, from: data) {
             recentAsmrSounds = saved
-        }
-    }
-
-    // MARK: - Fetch
-
-    func fetchJpmrVideoUrl() async {
-        isLoadingVideo = true
-        defer { isLoadingVideo = false }
-        do {
-            let videos: [JpmrVideo] = try await SupabaseManager.shared.client
-                .from("jpmr_videos")
-                .select()
-                .limit(1)
-                .execute()
-                .value
-            jpmrVideoUrl = videos.first?.videoUrl
-            videoErrorMessage = nil
-        } catch {
-            print("Failed to fetch JPMR video URL: \(error)")
-            videoErrorMessage = error.localizedDescription
         }
     }
 

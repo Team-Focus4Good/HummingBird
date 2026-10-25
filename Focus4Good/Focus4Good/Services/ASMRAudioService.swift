@@ -1,7 +1,6 @@
 import AVFoundation
 
 //Sound-to-File Mapping
-
 private func getFileName(for soundName: String) -> String {
     let lowerName = soundName.lowercased()
     if lowerName.contains("rain") || lowerName.contains("water") || lowerName.contains("ocean") || lowerName.contains("stream") {
@@ -33,7 +32,7 @@ class ASMRAudioService: @unchecked Sendable {
     private init() {}
 
 
-    /// Whether the given sound is already loaded (playing or paused).
+    // Whether the given sound is already loaded (playing or paused).
     func isLoaded(soundName: String) -> Bool {
         currentSoundName == soundName && audioPlayer != nil
     }
@@ -90,26 +89,26 @@ class ASMRAudioService: @unchecked Sendable {
 
     //Duration & Current Time
 
-    /// Total duration of the loaded audio in seconds.
+    // Total duration of the loaded audio in seconds.
     var duration: TimeInterval {
         audioPlayer?.duration ?? 0
     }
 
-    /// Current playback position in seconds.
+    // Current playback position in seconds.
     var currentTime: TimeInterval {
         audioPlayer?.currentTime ?? 0
     }
 
-    // MARK: Seeking
+    
 
-    /// Seek to a specific time in seconds.
+    // Seek to a specific time in seconds.
     func seek(to time: TimeInterval) {
         guard let player = audioPlayer else { return }
         let clampedTime = max(0, min(time, player.duration))
         player.currentTime = clampedTime
     }
 
-    // MARK: Volume
+    
 
     func setVolume(_ volume: Float) {
         audioPlayer?.volume = volume

@@ -26,7 +26,10 @@ class VolunteerStore {
     // MARK: - Init
     static let shared = VolunteerStore()
     private var client: SupabaseClient { SupabaseManager.shared.client }
-    init() {}
+    init() {
+        self.ngos = VolunteerStore.dummyNGOs
+        self.volunteerEvents = VolunteerStore.dummyEvents(for: VolunteerStore.ngo1ID)
+    }
 
     // MARK: - Clear (called on sign-out)
     func clearData() {

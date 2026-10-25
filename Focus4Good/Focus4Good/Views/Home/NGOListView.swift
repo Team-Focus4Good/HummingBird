@@ -6,8 +6,8 @@ struct NGOListView: View {
     @Environment(VolunteerStore.self) private var volunteerStore
     @Environment(UserStore.self) private var userStore
     
-    private var ngo: NGO? {
-        volunteerStore.ngos.first
+    private var ngo: NGO {
+        volunteerStore.ngos.first ?? VolunteerStore.dummyNGOs[0]
     }
     
     private var currentLevel: Int {
@@ -17,18 +17,7 @@ struct NGOListView: View {
     }
 
     var body: some View {
-        Group {
-            if let ngo = ngo {
-                NGOConnectDetailView(ngo: ngo, currentLevel: currentLevel)
-            } else {
-                VStack(spacing: 16) {
-                    ProgressView()
-                    Text("Loading NGO data...")
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
-                }
-            }
-        }
+        NGOConnectDetailView(ngo: ngo, currentLevel: currentLevel)
         .background(AppTheme.pageGradient)
         .navigationTitle("NGO Connect")
         .navigationBarTitleDisplayMode(.inline)
@@ -176,11 +165,7 @@ struct NGOConnectDetailView: View {
                             .clipShape(Capsule())
                         }
                     }
-                    
-                    // Level 2: Gallery
-                    LevelLockedSection(title: "Highlights", requiredLevel: 2, currentLevel: currentLevel, lockedIcon: "photo.on.rectangle.angled", description: "View the gallery of past events and impact.") {
-                        NGOGalleryView(images: ngo.galleryImages ?? ["ngo"])
-                    }
+
                     
                     // Level 3: Volunteer
                     LevelLockedSection(title: "Volunteer & Visit", requiredLevel: 3, currentLevel: currentLevel, lockedIcon: "hand.raised.fill", description: "Join our next event and make a direct impact.") {
@@ -330,24 +315,6 @@ struct NGOStatsView: View {
     }
 }
 
-struct NGOGalleryView: View {
-    let images: [String]
-    let columns = [GridItem(.flexible()), GridItem(.flexible())]
-    
-    var body: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(images.indices, id: \.self) { index in
-                if let uiImage = UIImage(named: images[index]) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(height: 120)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
-        }
-    }
-}
 
 // MARK: - Event Card
 

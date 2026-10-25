@@ -1,8 +1,6 @@
 import AVFoundation
 import Observation
 
-// MARK: - DeepFocusAudioService
-
 @Observable
 @MainActor
 final class DeepFocusAudioService: NSObject, AVAudioPlayerDelegate {
@@ -42,8 +40,6 @@ final class DeepFocusAudioService: NSObject, AVAudioPlayerDelegate {
 
         let candidateNames = [
             "creating-mental-space",
-            "creating-mental space",
-            "creating_mental_space"
         ]
 
         var soundUrl: URL?

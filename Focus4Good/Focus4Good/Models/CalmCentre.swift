@@ -37,18 +37,6 @@ struct JpmrSession: Codable {
     }
 }
 
-//JpmrVideo
-struct JpmrVideo: Codable, Identifiable {
-    var id: UUID = UUID()
-    var title: String
-    var videoUrl: String
-
-    enum CodingKeys: String, CodingKey {
-        case id, title
-        case videoUrl = "video_url"
-    }
-}
-
 //GuidedMeditationSession
 struct GuidedMeditationSession: Codable {
     var id: UUID = UUID()
@@ -214,8 +202,6 @@ struct BrainDumpEntry: Identifiable, Codable, Hashable {
                 if let base64Decoded = Data(base64Encoded: asciiChars),
                    (try? PKDrawing(data: base64Decoded)) != nil {
                     self.drawingData = base64Decoded
-                } else if (try? PKDrawing(data: rawBytes)) != nil {
-                    self.drawingData = rawBytes
                 } else {
                     self.drawingData = rawBytes
                 }

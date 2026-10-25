@@ -7,12 +7,12 @@ import Observation
 @MainActor
 final class SpeechRecognizer {
 
-    // MARK: - State
+    
     var transcript: String = ""
     var isListening: Bool = false
-    var errorMessage: String? = nil
+    var errorMessage: String?
 
-    // MARK: - Private
+    
     private var recognizer: SFSpeechRecognizer?
     private var audioEngine: AVAudioEngine?
     private var request: SFSpeechAudioBufferRecognitionRequest?
@@ -23,16 +23,11 @@ final class SpeechRecognizer {
             ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     }
 
-    // MARK: - Public API
-
-    /// Async entry point: checks permissions, then starts recording.
+    //step 1 - permissions
     func startListening() {
-        Task { @MainActor in
-            let speechOK = await requestSpeechPermission()
-            guard speechOK else { return }
-
-            let micOK = await requestMicrophonePermission()
-            guard micOK else { return }
+        Task {
+            guard await requestSpeechPermission(),
+                  await requestMicrophonePermission() else { return }
 
             beginRecording()
         }
@@ -49,41 +44,31 @@ final class SpeechRecognizer {
         isListening = false
     }
 
-    // MARK: - Permission Helpers
 
     private func requestSpeechPermission() async -> Bool {
-        await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
-                DispatchQueue.main.async {
-                    switch status {
-                    case .authorized:
-                        continuation.resume(returning: true)
-                    case .denied, .restricted:
-                        self.errorMessage = "Speech recognition is denied. Please enable it in Settings → Privacy → Speech Recognition."
-                        continuation.resume(returning: false)
-                    default:
-                        self.errorMessage = "Speech recognition is not available on this device."
-                        continuation.resume(returning: false)
-                    }
-                }
-            }
+        let status = await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
+        }
+        switch status {
+        case .authorized:
+            return true
+        case .denied, .restricted:
+            errorMessage = "Speech recognition is denied. Please enable it in Settings → Privacy → Speech Recognition."
+            return false
+        default:
+            errorMessage = "Speech recognition is not available on this device."
+            return false
         }
     }
 
     private func requestMicrophonePermission() async -> Bool {
-        await withCheckedContinuation { continuation in
-            AVAudioApplication.requestRecordPermission { granted in
-                DispatchQueue.main.async {
-                    if !granted {
-                        self.errorMessage = "Microphone access is denied. Please enable it in Settings → Privacy → Microphone."
-                    }
-                    continuation.resume(returning: granted)
-                }
-            }
+        let granted = await AVAudioApplication.requestRecordPermission()
+        if !granted {
+            errorMessage = "Microphone access is denied. Please enable it in Settings → Privacy → Microphone."
         }
+        return granted
     }
 
-    // MARK: - Recording
 
     private func beginRecording() {
         stopListening() // reset any existing session
