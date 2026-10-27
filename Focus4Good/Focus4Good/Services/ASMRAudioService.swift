@@ -19,7 +19,8 @@ import Observation
 // MARK: - ASMRAudioService
 
 @Observable
-class ASMRAudioService: @unchecked Sendable {
+@MainActor
+final class ASMRAudioService {
 
 
     //prevents two different sounds from playing at the same time
