@@ -28,11 +28,30 @@ class UserStore {
     private var client: SupabaseClient { SupabaseManager.shared.client }
     
     init() {
-        // Auth is bypassed — set up a mock user immediately
+        Task {
+            await restoreSession()
+        }
+    }
+
+    func restoreSession() async {
+        do {
+            let session = try await client.auth.session
+            let userId = session.user.id
+            await fetchCurrentUser(userId: userId)
+            self.isAuthenticated = true
+            await loadUserData(userId: userId)
+        } catch {
+            self.currentUser = nil
+            self.isAuthenticated = false
+        }
+        self.isSessionReady = true
+    }
+
+    func loginAsDemoUser() {
         var user = DummyData.currentUser
-        let savedPoints = UserDefaults.standard.object(forKey: "user_focus_points_\(user.id.uuidString)") as? Int ?? 0
-        let savedStreak = UserDefaults.standard.object(forKey: "user_current_streak_\(user.id.uuidString)") as? Int ?? 0
-        let savedBest = UserDefaults.standard.object(forKey: "user_best_streak_\(user.id.uuidString)") as? Int ?? 0
+        let savedPoints = UserDefaults.standard.object(forKey: "user_focus_points_\(user.id.uuidString)") as? Int ?? user.focusPoints
+        let savedStreak = UserDefaults.standard.object(forKey: "user_current_streak_\(user.id.uuidString)") as? Int ?? user.currentStreak
+        let savedBest = UserDefaults.standard.object(forKey: "user_best_streak_\(user.id.uuidString)") as? Int ?? user.bestStreak
         user.focusPoints = savedPoints
         user.currentStreak = savedStreak
         user.bestStreak = savedBest
@@ -50,26 +69,18 @@ class UserStore {
             let _ = try await client.auth.signUp(
                 email: email,
                 password: password,
-                data: ["full_name": .string(fullName)]  // passed to trigger
+                data: ["full_name": .string(fullName)]
             )
             
-            let session = try await client.auth.session
-            let userId = session.user.id
-            await fetchCurrentUser(userId: userId)
-            
-            isAuthenticated = true
-            isMfaRequired = false
-            await loadUserData(userId: userId)
-            
-            // TEMPORARILY DISABLED 2FA
-            // self.isMfaRequired = true
-            // self.isLoading = false
-            // 
-            // // Call Edge Function to send OTP
-            // _ = try await client.functions.invoke(
-            //     "send-otp",
-            //     options: .init(body: ["email": email])
-            // )
+            if let session = try? await client.auth.session {
+                let userId = session.user.id
+                await fetchCurrentUser(userId: userId)
+                isAuthenticated = true
+                isMfaRequired = false
+                await loadUserData(userId: userId)
+            } else {
+                errorMessage = "Account created! You can now sign in."
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -92,18 +103,9 @@ class UserStore {
             isAuthenticated = true
             isMfaRequired = false
             await loadUserData(userId: userId)
-            
-            // TEMPORARILY DISABLED 2FA
-            // self.isMfaRequired = true
-            // self.isLoading = false
-            // 
-            // // Call Edge Function to send OTP
-            // _ = try await client.functions.invoke(
-            //     "send-otp",
-            //     options: .init(body: ["email": email])
-            // )
         } catch {
-            errorMessage = "Invalid email or password"
+            print("❌ Supabase signIn error: \(error)")
+            errorMessage = "Invalid user or password"
         }
         isLoading = false
     }
@@ -257,16 +259,36 @@ class UserStore {
     func fetchCurrentUser(userId: UUID) async {
         isLoading = true
         do {
-            let user: User = try await client
+            var user: User = try await client
                 .from("profiles")
                 .select()
                 .eq("id", value: userId.uuidString)
                 .single()
                 .execute()
                 .value
+            let savedPoints = UserDefaults.standard.object(forKey: "user_focus_points_\(user.id.uuidString)") as? Int ?? user.focusPoints
+            let savedStreak = UserDefaults.standard.object(forKey: "user_current_streak_\(user.id.uuidString)") as? Int ?? user.currentStreak
+            let savedBest = UserDefaults.standard.object(forKey: "user_best_streak_\(user.id.uuidString)") as? Int ?? user.bestStreak
+            user.focusPoints = savedPoints
+            user.currentStreak = savedStreak
+            user.bestStreak = savedBest
             currentUser = user
         } catch {
-            errorMessage = "Failed to load profile: \(error.localizedDescription)"
+            print("⚠️ fetchCurrentUser: \(error.localizedDescription), using session fallback")
+            let session = try? await client.auth.session
+            let email = session?.user.email ?? ""
+            let fallbackUser = User(
+                id: userId,
+                fullName: email.components(separatedBy: "@").first?.capitalized ?? "User",
+                email: email,
+                profileImageUrl: nil,
+                authProvider: "email",
+                focusPoints: 0,
+                currentLevel: 1,
+                bestStreak: 0,
+                currentStreak: 0
+            )
+            currentUser = fallbackUser
         }
         isLoading = false
     }

@@ -118,14 +118,6 @@ struct HomeView: View {
             }
             .onAppear {
                 loadProfileImage()
-                if !UserDefaults.standard.bool(forKey: "didResetPoints") {
-                    Task {
-                        if let pts = userStore.currentUser?.focusPoints, pts > 0 {
-                            await userStore.updateFocusPoints(by: -pts)
-                        }
-                        UserDefaults.standard.set(true, forKey: "didResetPoints")
-                    }
-                }
                 withAnimation(.easeOut(duration: 0.5).delay(0.1)) {
                     appeared = true
                 }
@@ -302,15 +294,16 @@ struct HomeView: View {
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
+                    .animation(nil, value: progress)
 
                 // Value
                 VStack(spacing: 1) {
                     Text("\(focusPoints)")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(AppTheme.warmTextPrimary)
-                        .contentTransition(.numericText())
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
+                        .animation(nil, value: focusPoints)
                     Text("pts")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(AppTheme.warmTextSecondary)
@@ -328,6 +321,9 @@ struct HomeView: View {
         .frame(maxWidth: .infinity)
         .frame(height: height)
         .glassCard(cornerRadius: 18)
+        .transaction { transaction in
+            transaction.animation = nil
+        }
     }
 
     // MARK: Today's Goal

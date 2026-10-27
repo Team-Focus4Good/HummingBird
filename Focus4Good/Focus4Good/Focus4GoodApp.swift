@@ -45,12 +45,14 @@ struct Focus4GoodApp: App {
 
                 case .onboarding:
                     OnboardingView(onComplete: {
-                        appState = .app
+                        hasSeenOnboarding = true
+                        appState = userStore.isAuthenticated ? .app : .auth
                     })
 
                 case .auth:
-                    // Auth is bypassed for now — go straight to app
-                    MainTabView()
+                    AuthView {
+                        appState = .app
+                    }
 
                 case .app:
                     MainTabView()
@@ -62,6 +64,13 @@ struct Focus4GoodApp: App {
             .environment(progressStore)
             .environment(calmCentreStore)
             .environment(communityStore)
+            .onChange(of: userStore.isAuthenticated) { _, isAuth in
+                if isAuth {
+                    appState = .app
+                } else if appState == .app {
+                    appState = .auth
+                }
+            }
             .onAppear {
                 // Request notification permission on first launch
                 Task { _ = await NotificationManager.shared.requestPermission() }
@@ -96,11 +105,12 @@ struct Focus4GoodApp: App {
     // MARK: - Helpers
 
     private func handleSplashFinished() {
-        // Auth is bypassed — skip session check
         if !hasSeenOnboarding {
             appState = .onboarding
-        } else {
+        } else if userStore.isAuthenticated {
             appState = .app
+        } else {
+            appState = .auth
         }
     }
 }

@@ -151,7 +151,30 @@ struct ProfileView: View {
                     } header: { Text("App Settings").foregroundStyle(AppTheme.warmTextPrimary).textCase(nil) }
                     .listRowBackground(AppTheme.cardBg)
 
-                    // Sign Out (disabled — auth is bypassed)
+                    // Sign Out
+                    Section {
+                        Button(role: .destructive) {
+                            showSignOutAlert = true
+                        } label: {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .fill(AppTheme.destructive.opacity(0.12))
+                                        .frame(width: 32, height: 32)
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(AppTheme.destructive)
+                                }
+
+                                Text("Sign Out")
+                                    .font(.body)
+                                    .foregroundStyle(AppTheme.destructive)
+                                Spacer()
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                    .listRowBackground(AppTheme.cardBg)
                 }
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
@@ -212,7 +235,15 @@ struct ProfileView: View {
         } message: {
             Text("Dimension is not correct or format is not supported. Please select a different image.")
         }
-        // Sign-out alert removed — auth is bypassed
+        .alert("Sign Out", isPresented: $showSignOutAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Sign Out", role: .destructive) {
+                userStore.signOut()
+                dismiss()
+            }
+        } message: {
+            Text("Are you sure you want to sign out?")
+        }
         .alert("Notifications", isPresented: $showNotificationsAlert) {
             Button("OK", role: .cancel) {}
         } message: { Text("Notification settings will be available when backend is connected.") }
@@ -227,7 +258,11 @@ struct ProfileView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
-        // Auto-dismiss on sign-out removed — auth is bypassed
+        .onChange(of: userStore.isAuthenticated) { _, isAuth in
+            if !isAuth {
+                dismiss()
+            }
+        }
     }
 
     private func settingsRow(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
